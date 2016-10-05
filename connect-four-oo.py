@@ -35,6 +35,9 @@ class Game(object):
 
         Move is provided as a number representing the column (0-indexed)."""
 
+        if not 0 <= move < 7:
+            raise InvalidMove
+
         placed = False
         x = None
         y = None
@@ -61,65 +64,58 @@ class Game(object):
     def won(self, x, y):
         """Returns boolean for whether or not the current player has won."""
 
-        if (self.win_horizontal(x, y)
-            or self.win_vertical(x, y)
-            or self.win_diagonal_down(x, y)
-            or self.win_diagonal_up(x, y)):
-            self.winner = self.current_player
-            print "Congratulations, Player {} has won!".format(self.current_player)
-            return True
+        segments = [self.get_horizontal(x, y),
+                    self.get_vertical(x, y),
+                    self.get_diagonal_up(x, y),
+                    self.get_diagonal_down(x, y)]
+
+        for segment in segments:
+            if self.match(segment):
+                self.winner = self.current_player
+                print "Congratulations, Player {} has won!".format(self.current_player)
+                return True
 
         return False
 
-    def win_horizontal(self, x, y):
-        """A horizontal win."""
+    def get_horizontal(self, x, y):
+        """A horizontal segment.
 
-        segment = self._board[y]
+        Returns the values from the row containing the given position."""
 
-        if self.match(segment):
-            return True
+        return self._board[y]
 
-        return False
+    def get_vertical(self, x, y):
+        """A vertical segment.
 
-    def win_vertical(self, x, y):
-        """A vertical win."""
+        Returns the values from the column containing the given position."""
 
-        segment = [row[x] for row in self._board]
+        return [row[x] for row in self._board]
 
-        if self.match(segment):
-            return True
+    def get_diagonal_up(self, x, y):
+        """A diagonal segment, upwards from left to right.
 
-        return False
-
-    def win_diagonal_up(self, x, y):
-        """A diagonal win, upwards from left to right."""
+        Returns the values from that diagonal (going upward to the right)
+        containing the given position."""
 
         while 0 <= x < 7 and 0 <= y < 6:
             x -= 1
             y += 1
 
-        segment = [self._board[y-i][x+i] for i in xrange(7)
-                   if 0 <= (x+i) < 7 and 0 <= (y-i) < 6]
+        return [self._board[y-i][x+i] for i in xrange(7)
+                if 0 <= (x+i) < 7 and 0 <= (y-i) < 6]
 
-        if self.match(segment):
-            return True
+    def get_diagonal_down(self, x, y):
+        """A diagonal segment, downwards from left to right.
 
-        return False
-
-    def win_diagonal_down(self, x, y):
-        """A diagonal win, downwards from left to right."""
+        Returns the values from that diagonal (going downward to the right)
+        containing the given position."""
 
         while 0 <= x < 7 and 0 <= y < 6:
             x -= 1
             y -= 1
 
-        segment = [self._board[y+i][x+i] for i in xrange(7)
-                   if 0 <= (x+i) < 7 and 0 <= (y+i) < 6]
-
-        if self.match(segment):
-            return True
-
-        return False
+        return [self._board[y+i][x+i] for i in xrange(7)
+                if 0 <= (x+i) < 7 and 0 <= (y+i) < 6]
 
     def match(self, segment):
         """Creates subsegments and sees if any of them are a winning match."""
@@ -127,8 +123,6 @@ class Game(object):
         match_len = self._win_length
 
         subsegments = [[segment[j+i] for i in range(match_len)] for j in range(len(segment)-match_len+1)]
-        # from pprint import pprint
-        # pprint(subsegments)
 
         for subsegment in subsegments:
             if set(subsegment).pop() == self.current_player and len(list(set(subsegment))) == 1:
@@ -148,18 +142,13 @@ class Game(object):
 
     def turn(self, player):
         "Flow of each player's turn within the game."
-            # get their move
-            # update the board
-            # show the new board
-            # decide if it's game over or not
+
         self.current_player = player
         print "current_player:", self.current_player
         while True:
             move = int(raw_input("\nHey player {}, what's your move?\n> ".format(player)))
             try:
                 x, y = self.update(move)
-                # print "x:", x
-                # print "y:", y
                 break
             except InvalidMove:
                 print "Sorry, that move is not valid. Try again!"
@@ -171,8 +160,9 @@ class Game(object):
 class InvalidMove(Exception):
     """Exception that gets raised when a move is not valid.
 
-    If a player tries to place a game piece into a completely filled column,
-    the move will come back as invalid."""
+    Raised in the following cases:
+    - if a player tries to place a game piece into a completely filled column
+    - if a player tries to place a game piece in a non-existent column"""
 
 
 class GameOver(Exception):
